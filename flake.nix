@@ -87,7 +87,8 @@
             (aws-sdk-cpp.override {
               apis = ["s3" "transfer"];
               customMemoryManagement = false;
-            });
+            })
+          ++ lib.optional (stdenv.isLinux || stdenv.isDarwin) google-cloud-cpp;
 
         propagatedDeps =
           [ (boehmgc.override { enableLargeConfig = true; })

@@ -23,6 +23,10 @@ ifeq ($(ENABLE_S3), 1)
 	libstore_LDFLAGS += -laws-cpp-sdk-transfer -laws-cpp-sdk-s3 -laws-cpp-sdk-core
 endif
 
+ifeq ($(HAVE_GCS), 1)
+	libstore_LDFLAGS += $(GCS_LIBS)
+endif
+
 ifeq ($(OS), SunOS)
 	libstore_LDFLAGS += -lsocket
 endif

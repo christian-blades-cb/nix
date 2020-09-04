@@ -253,6 +253,10 @@ if test -n "$enable_s3"; then
   AC_DEFINE_UNQUOTED([AWS_VERSION_MINOR], ${aws_version_tokens@<:@1@:>@}, [Minor version of aws-sdk-cpp.])
 fi
 
+PKG_CHECK_MODULES([GCS], [storage_client], [
+  CXXFLAGS="$GCS_CFLAGS $CXXFLAGS"
+  AC_DEFINE([HAVE_GCS], [1], [Whether to enable google cloud storage support via google-cloud-cpp.])
+])
 
 # Whether to use the Boehm garbage collector.
 AC_ARG_ENABLE(gc, AC_HELP_STRING([--enable-gc],
