@@ -3,6 +3,7 @@
 #include "globals.hh"
 #include "store-api.hh"
 #include "s3.hh"
+#include "gcs.hh"
 #include "compression.hh"
 #include "finally.hh"
 
@@ -674,6 +675,22 @@ struct curlFileTransfer : public FileTransfer
     }
 #endif
 
+#ifdef HAVE_GCS
+    std::tuple<std::string, std::string, Store::Params> parseGCSUri(std::string uri)
+    {
+        auto [path, params] = splitUriAndParams(uri);
+
+        auto slash = path.find('/', 5); // 5 is the length of "gs://" prefix
+            if (slash == std::string::npos)
+                throw nix::Error("bad gcs URI '%s'", path);
+
+        std::string bucketName(path, 5, slash - 5);
+        std::string key(path, slash + 1);
+
+        return {bucketName, key, params};
+    }
+#endif
+
     void enqueueFileTransfer(const FileTransferRequest & request,
         Callback<FileTransferResult> callback) override
     {
@@ -700,6 +717,26 @@ struct curlFileTransfer : public FileTransfer
                 callback(std::move(res));
 #else
                 throw nix::Error("cannot download '%s' because Nix is not built with S3 support", request.uri);
+#endif
+            } catch (...) { callback.rethrow(); }
+            return;
+        }
+
+        if (hasPrefix(request.uri, "gs://")) {
+            try {
+#ifdef HAVE_GCS
+                auto [bucketName, key, _params] = parseGCSUri(request.uri); // TODO use params?
+
+                if (request.data) {
+                    // upload
+
+                } else {
+                    // download
+                }
+                // TODO: implement GCS
+                throw nix::Error("gcs is not yet implemented");
+#else
+                throw nix::Error("cannot download '%s' because Nix is not built with GCS support");
 #endif
             } catch (...) { callback.rethrow(); }
             return;
@@ -861,7 +898,7 @@ bool isUri(const string & s)
     size_t pos = s.find("://");
     if (pos == string::npos) return false;
     string scheme(s, 0, pos);
-    return scheme == "http" || scheme == "https" || scheme == "file" || scheme == "channel" || scheme == "git" || scheme == "s3" || scheme == "ssh";
+    return scheme == "http" || scheme == "https" || scheme == "file" || scheme == "channel" || scheme == "git" || scheme == "s3" || scheme == "gs" || scheme == "ssh";
 }
 
 
